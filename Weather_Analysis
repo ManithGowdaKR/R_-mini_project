@@ -1,0 +1,45 @@
+# Load required libraries
+library(readr)  # For reading data from CSV file
+library(tidyr)  # For data manipulation
+library(dplyr)  # For data manipulation
+library(ggplot2)  # For data visualization
+
+# Load weather data from CSV file
+weather_data <- read.delim("weather_data.csv", header = FALSE, sep = "\t")
+
+# Separate the single column into multiple columns based on the comma delimiter
+weather_data <- separate(weather_data, col = 1, into = c("Date_Time", "Temp_C", "Dew_Point", "Rel_Hum", "Wind_Speed_km_h", "Visibility_km", "Press_kPa", "Weather"), sep = ",")
+
+# Clean data: Remove non-numeric characters from Temp_C column
+weather_data$Temp_C <- gsub("[^0-9.-]", "", weather_data$Temp_C)
+
+# Convert Date_Time column to POSIXct format
+weather_data$Date_Time <- as.POSIXct(weather_data$Date_Time, format = "%d-%m-%Y %H:%M")
+
+# Convert relevant columns to numeric and handle missing values
+weather_data <- weather_data %>%
+  mutate(Temp_C = as.numeric(Temp_C),
+         Dew_Point = as.numeric(Dew_Point),
+         Rel_Hum = as.numeric(Rel_Hum),
+         Wind_Speed_km_h = as.numeric(Wind_Speed_km_h),
+         Visibility_km = as.numeric(Visibility_km),
+         Press_kPa = as.numeric(Press_kPa)) %>%
+  na.omit()
+
+# Correlation analysis
+# Calculate correlation matrix between temperature, humidity, and wind speed
+correlation_matrix <- cor(weather_data[, c("Temp_C", "Rel_Hum", "Wind_Speed_km_h")])
+print(correlation_matrix)
+
+# Exploratory Data Analysis (EDA)
+# Example: Time series plot of temperature
+ggplot(data = weather_data, aes(x = Date_Time, y = Temp_C)) +
+  geom_line() +
+  labs(x = "Date/Time", y = "Temperature (C)", title = "Temperature Over Time")
+
+# Statistical analysis
+# Example: t-test to compare temperature between foggy and non-foggy weather
+foggy_temp <- subset(weather_data, grepl("Fog", Weather))$Temp_C
+non_foggy_temp <- subset(weather_data, !grepl("Fog", Weather))$Temp_C
+t_test_result <- t.test(foggy_temp, non_foggy_temp)
+print(t_test_result)
